@@ -1,0 +1,12 @@
+node_modules/
+build/
+.cache/
+public/build/
+.env
+data/todos.json
+
+# Local-only project files (not part of the pushed repo)
+AGENTS.md
+claude.md
+BUILD_NOTES.md
+.claude/

@@ -53,4 +53,27 @@ describe("todo.server", () => {
     const todos = await getTodos();
     expect(todos.find((t) => t.id === created.id)).toBeUndefined();
   });
+
+  it("gets a single todo by id, or null if missing", async () => {
+    const { addTodo, getTodo } = await import("../../app/models/todo.server");
+    const created = await addTodo("Find me");
+    await expect(getTodo(created.id)).resolves.toEqual(created);
+    await expect(getTodo("does-not-exist")).resolves.toBeNull();
+  });
+
+  it("updates a todo's title", async () => {
+    const { addTodo, updateTodoTitle, getTodo } = await import("../../app/models/todo.server");
+    const created = await addTodo("Origin title");
+    await updateTodoTitle(created.id, "Updated title");
+    const updated = await getTodo(created.id);
+    expect(updated?.title).toBe("Updated title");
+  });
+
+  it("rejects an empty title on update", async () => {
+    const { addTodo, updateTodoTitle } = await import("../../app/models/todo.server");
+    const created = await addTodo("Origin title");
+    await expect(updateTodoTitle(created.id, "   ")).rejects.toThrow(
+      "Todo title cannot be empty",
+    );
+  });
 });

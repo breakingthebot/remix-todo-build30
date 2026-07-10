@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { Form, useLoaderData, useNavigation } from "@remix-run/react";
+import { Form, Link, useLoaderData, useNavigation } from "@remix-run/react";
 
 import { addTodo, deleteTodo, getTodos, toggleTodo } from "../models/todo.server";
 
@@ -46,6 +46,10 @@ export default function Index() {
     <main style={{ maxWidth: 480, margin: "3rem auto", fontFamily: "sans-serif" }}>
       <h1>Remix Todo</h1>
 
+      <p>
+        <Link to="/todos">View / edit todos on their own pages &rarr;</Link>
+      </p>
+
       <Form method="post" style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
         <input type="hidden" name="intent" value="create" />
         <input
@@ -85,7 +89,8 @@ export default function Index() {
               </button>
             </Form>
 
-            <span
+            <Link
+              to={`/todos/${todo.id}`}
               style={{
                 flex: 1,
                 textDecoration: todo.completed ? "line-through" : "none",
@@ -93,7 +98,7 @@ export default function Index() {
               }}
             >
               {todo.title}
-            </span>
+            </Link>
 
             <Form method="post">
               <input type="hidden" name="intent" value="delete" />

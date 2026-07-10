@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0] - 2026-07-10
+
+### Added
+- Nested routes for viewing/editing a single todo: `app/routes/todos.tsx`
+  (layout + sidebar nav), `app/routes/todos._index.tsx` (empty-state child),
+  `app/routes/todos.$id.tsx` (detail/edit child with its own loader/action).
+- `getTodo` and `updateTodoTitle` in the data layer, with test coverage.
+- 404 handling for an unknown todo id via a route `ErrorBoundary`.
+- Homepage todo titles now link to their detail/edit page.
+- GitHub repo description and topics.
+
 ## [0.1.0] - 2026-07-10
 
 ### Added

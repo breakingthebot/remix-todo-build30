@@ -67,6 +67,22 @@ export async function addTodo(title: string): Promise<Todo> {
   return todo;
 }
 
+export async function getTodo(id: string): Promise<Todo | null> {
+  const todos = await readTodos();
+  return todos.find((todo) => todo.id === id) ?? null;
+}
+
+export async function updateTodoTitle(id: string, title: string): Promise<void> {
+  const trimmed = title.trim();
+  if (!trimmed) {
+    throw new Error("Todo title cannot be empty");
+  }
+
+  const todos = await readTodos();
+  const next = todos.map((todo) => (todo.id === id ? { ...todo, title: trimmed } : todo));
+  await writeTodos(next);
+}
+
 export async function toggleTodo(id: string): Promise<void> {
   const todos = await readTodos();
   const next = todos.map((todo) =>

@@ -1,7 +1,8 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { Form, Link, useLoaderData, useNavigation } from "@remix-run/react";
+import { Form, Link, useFetcher, useLoaderData, useNavigation } from "@remix-run/react";
 
+import type { Todo } from "../models/todo.server";
 import { addTodo, deleteTodo, getTodos, toggleTodo } from "../models/todo.server";
 
 export async function loader(_args: LoaderFunctionArgs) {
@@ -67,51 +68,71 @@ export default function Index() {
 
       <ul style={{ listStyle: "none", padding: 0 }}>
         {todos.map((todo) => (
-          <li
-            key={todo.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.5rem 0",
-              borderBottom: "1px solid #ddd",
-            }}
-          >
-            <Form method="post">
-              <input type="hidden" name="intent" value="toggle" />
-              <input type="hidden" name="id" value={todo.id} />
-              <button
-                type="submit"
-                aria-label={todo.completed ? "Mark incomplete" : "Mark complete"}
-                style={{ cursor: "pointer" }}
-              >
-                {todo.completed ? "✅" : "⬜"}
-              </button>
-            </Form>
-
-            <Link
-              to={`/todos/${todo.id}`}
-              style={{
-                flex: 1,
-                textDecoration: todo.completed ? "line-through" : "none",
-                color: todo.completed ? "#888" : "inherit",
-              }}
-            >
-              {todo.title}
-            </Link>
-
-            <Form method="post">
-              <input type="hidden" name="intent" value="delete" />
-              <input type="hidden" name="id" value={todo.id} />
-              <button type="submit" aria-label="Delete todo">
-                🗑️
-              </button>
-            </Form>
-          </li>
+          <TodoItem key={todo.id} todo={todo} />
         ))}
       </ul>
 
       {todos.length === 0 && <p>No todos yet — add one above.</p>}
     </main>
+  );
+}
+
+function TodoItem({ todo }: { todo: Todo }) {
+  const fetcher = useFetcher();
+
+  // While a toggle/delete submission is in flight, derive the UI from what
+  // was just submitted instead of waiting on the round trip — that's the
+  // "optimistic" part. Once the fetcher settles, `todo` (from a revalidated
+  // loader) becomes the source of truth again.
+  const pendingIntent = fetcher.formData?.get("intent");
+  const isDeleting = pendingIntent === "delete";
+  const completed = pendingIntent === "toggle" ? !todo.completed : todo.completed;
+
+  if (isDeleting) {
+    return null;
+  }
+
+  return (
+    <li
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "0.5rem",
+        padding: "0.5rem 0",
+        borderBottom: "1px solid #ddd",
+        opacity: fetcher.state !== "idle" ? 0.6 : 1,
+      }}
+    >
+      <fetcher.Form method="post">
+        <input type="hidden" name="intent" value="toggle" />
+        <input type="hidden" name="id" value={todo.id} />
+        <button
+          type="submit"
+          aria-label={completed ? "Mark incomplete" : "Mark complete"}
+          style={{ cursor: "pointer" }}
+        >
+          {completed ? "✅" : "⬜"}
+        </button>
+      </fetcher.Form>
+
+      <Link
+        to={`/todos/${todo.id}`}
+        style={{
+          flex: 1,
+          textDecoration: completed ? "line-through" : "none",
+          color: completed ? "#888" : "inherit",
+        }}
+      >
+        {todo.title}
+      </Link>
+
+      <fetcher.Form method="post">
+        <input type="hidden" name="intent" value="delete" />
+        <input type="hidden" name="id" value={todo.id} />
+        <button type="submit" aria-label="Delete todo">
+          🗑️
+        </button>
+      </fetcher.Form>
+    </li>
   );
 }

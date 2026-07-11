@@ -6,11 +6,12 @@
 
 A todo list web app you run yourself. You open it in a browser, type a task
 and hit "Add," and it shows up in a list. You can check tasks off or delete
-them right from the list, or click a todo's title to open it on its own page
-and rename it there. Every action goes through the server (not just
-JavaScript in the browser), so the page still works even before any
-client-side JavaScript has loaded — that's what "server-side rendering" means
-here.
+them right from the list — and that happens *instantly* in the browser, not
+after waiting on a round trip to the server — or click a todo's title to open
+it on its own page and rename it there. Every action still goes through the
+server underneath (not just JavaScript in the browser), so the page works
+even before any client-side JavaScript has loaded — that's what
+"server-side rendering" means here.
 
 Right now the app stores its data in a plain JSON file on disk. That's
 intentionally simple for this first iteration; it's not meant to survive a
@@ -31,7 +32,8 @@ npm install
 npm run dev
 ```
 
-Then open http://localhost:3000.
+Then open http://localhost:5173 (Vite's dev server port — `npm start`,
+the production build, serves on port 3000 instead).
 
 ## Available scripts
 
@@ -59,8 +61,10 @@ on GitHub, for run history.
   source code.
 - `app/routes/_index.tsx` — the `/` route. Its `loader` reads the todo list
   for server-side rendering; its `action` handles add/toggle/delete submitted
-  via plain HTML `<Form>` elements (Remix form actions). Each todo's title
-  links to its detail page.
+  via Remix form actions. Each todo row is its own `TodoItem` component using
+  `useFetcher` so toggling/deleting one item doesn't block the rest of the
+  page — see "Optimistic UI" below. Each todo's title links to its detail
+  page.
 - `app/routes/todos.tsx` — layout route for `/todos/*`. Loads the full todo
   list for a sidebar nav and renders the matched child route via `<Outlet />`
   — this is Remix's nested routing: the layout and the child route each have
@@ -70,7 +74,24 @@ on GitHub, for run history.
 - `app/routes/todos.$id.tsx` — child route shown at `/todos/:id`. Its `loader`
   fetches one todo (404 via `ErrorBoundary` if the id doesn't exist); its
   `action` handles rename/toggle/delete for that single todo, redirecting
-  back to `/todos` after a delete.
+  back to `/todos` after a delete. The toggle button also uses `useFetcher`
+  for the same instant feedback as the homepage list.
+
+## Optimistic UI
+
+Toggling or deleting a todo updates the screen immediately, using the
+`intent` field of the in-flight `fetcher.formData` to decide what the UI
+should look like *before* the server responds:
+
+- **Toggle** — the checkbox/strikethrough flips right away; the row dims
+  slightly (`opacity: 0.6`) while the request is in flight, and settles back
+  once the server confirms (or reverts if it fails).
+- **Delete** — the row is removed from the list immediately rather than
+  waiting for the server's response.
+
+This is scoped to `useFetcher` (not the page-level `<Form>`/navigation) so
+one todo's toggle/delete doesn't block interaction with the rest of the
+list.
 - `app/root.tsx` — the document shell (`<html>`, `<head>`, `<body>`) every
   route renders inside.
 - `app/entry.client.tsx` / `app/entry.server.tsx` — Remix's standard hydration
@@ -79,20 +100,28 @@ on GitHub, for run history.
 ## Testing manually
 
 1. `npm run dev`
-2. Visit http://localhost:3000
+2. Visit http://localhost:5173
 3. Add a todo, refresh the page — it should persist (confirms SSR + the JSON
    data layer are both working, not just client state)
-4. Toggle a todo complete/incomplete
-5. Click a todo's title to open `/todos/:id` — rename it, toggle it, or
+4. Toggle a todo complete/incomplete on the homepage — notice it updates
+   instantly, with no page flash/reload
+5. Delete a todo from the homepage list — it disappears immediately
+6. Click a todo's title to open `/todos/:id` — rename it, toggle it, or
    delete it (delete redirects you back to `/todos`)
-6. Visit a bogus id like `/todos/does-not-exist` — you should see a friendly
+7. Visit a bogus id like `/todos/does-not-exist` — you should see a friendly
    "todo doesn't exist" message, not a crash
-7. Delete a todo from the homepage list too
 8. Check `data/todos.json` in the project folder — it should reflect all of
    the above changes
 
 ## Current scope / what's not here yet
 
-This is iteration 3 of an incremental build. Not yet implemented: optimistic
-UI updates and a real database. See `CHANGELOG.md` for what's shipped so
-far.
+This is iteration 4 of an incremental build. Not yet implemented: a real
+database (still a JSON file), and inline validation error display for empty
+titles (the server already rejects them, the UI doesn't yet surface why).
+See `CHANGELOG.md` for what's shipped so far.
+
+Also worth knowing: there's a harmless React hydration console warning on
+the "add a todo" title input, caused by the browser normalizing the
+`flex: 1` shorthand CSS differently than the server-rendered HTML string.
+It doesn't affect functionality — noted here so it's not mistaken for a new
+bug.

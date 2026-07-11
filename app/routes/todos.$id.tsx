@@ -1,6 +1,12 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
-import { Form, isRouteErrorResponse, useLoaderData, useRouteError } from "@remix-run/react";
+import {
+  Form,
+  isRouteErrorResponse,
+  useFetcher,
+  useLoaderData,
+  useRouteError,
+} from "@remix-run/react";
 
 import { deleteTodo, getTodo, toggleTodo, updateTodoTitle } from "../models/todo.server";
 
@@ -41,6 +47,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
 export default function TodoDetail() {
   const { todo } = useLoaderData<typeof loader>();
+  const toggleFetcher = useFetcher();
+
+  const completed =
+    toggleFetcher.formData?.get("intent") === "toggle" ? !todo.completed : todo.completed;
 
   return (
     <div>
@@ -52,10 +62,10 @@ export default function TodoDetail() {
         <button type="submit">Save</button>
       </Form>
 
-      <Form method="post" style={{ marginBottom: "0.5rem" }}>
+      <toggleFetcher.Form method="post" style={{ marginBottom: "0.5rem" }}>
         <input type="hidden" name="intent" value="toggle" />
-        <button type="submit">{todo.completed ? "Mark incomplete" : "Mark complete"}</button>
-      </Form>
+        <button type="submit">{completed ? "Mark incomplete" : "Mark complete"}</button>
+      </toggleFetcher.Form>
 
       <Form method="post">
         <input type="hidden" name="intent" value="delete" />

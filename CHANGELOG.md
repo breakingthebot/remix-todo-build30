@@ -2,6 +2,28 @@
 
 All notable changes to this project are documented here.
 
+## [0.4.0] - 2026-07-10
+
+### Added
+- Optimistic UI for toggle/delete on the homepage list (`app/routes/_index.tsx`):
+  each todo row is now a `TodoItem` component using `useFetcher`, so the
+  checkbox flips and deleted rows disappear immediately instead of waiting
+  on the server round trip.
+- Same optimistic toggle behavior on the `/todos/:id` detail page
+  (`app/routes/todos.$id.tsx`).
+- Verified interactively with a headless-browser (Playwright) smoke test:
+  home page render, instant toggle, instant delete, nested route navigation,
+  console-error check.
+
+### Fixed
+- README's "Getting started" pointed at the wrong port for `npm run dev`
+  (Vite serves on 5173, not 3000 — that's the production `npm start` port).
+
+### Known issues
+- Harmless React hydration warning on the todo-title `<input>`'s `style`
+  attribute (browser CSS shorthand normalization of `flex: 1`). Cosmetic,
+  pre-existing, not caused by this iteration's changes.
+
 ## [0.3.0] - 2026-07-10
 
 ### Added

@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here.
 
+## [0.5.0] - 2026-07-10
+
+### Changed
+- Data layer (`app/models/todo.server.ts`) now persists to a real SQLite
+  database (`data/todos.db`, via `better-sqlite3`) instead of a hand-rolled
+  JSON file. Every exported function kept its exact prior signature, so no
+  route or test code needed to change.
+- `.gitignore` now excludes the whole `data/` directory (was previously
+  scoped to just `data/todos.json`).
+
+### Added
+- `better-sqlite3` (dependency) + `@types/better-sqlite3` (dev dependency).
+
 ## [0.4.0] - 2026-07-10
 
 ### Added

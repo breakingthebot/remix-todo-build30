@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdirSync } from "node:fs";
 import path from "node:path";
+
+import Database from "better-sqlite3";
 
 export type Todo = {
   id: string;
@@ -10,44 +12,86 @@ export type Todo = {
 };
 
 const DATA_DIR = path.join(process.cwd(), "data");
-const DATA_FILE = path.join(DATA_DIR, "todos.json");
+const DATA_FILE = path.join(DATA_DIR, "todos.db");
 
-const SEED_TODOS: Todo[] = [
-  {
-    id: randomUUID(),
-    title: "Write the README",
-    completed: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: randomUUID(),
-    title: "Wire up the todo form action",
-    completed: false,
-    createdAt: new Date().toISOString(),
-  },
-];
+type TodoRow = {
+  id: string;
+  title: string;
+  completed: number;
+  createdAt: string;
+};
 
-async function readTodos(): Promise<Todo[]> {
-  try {
-    const raw = await readFile(DATA_FILE, "utf-8");
-    return JSON.parse(raw) as Todo[];
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      await writeTodos(SEED_TODOS);
-      return SEED_TODOS;
+function rowToTodo(row: TodoRow): Todo {
+  return {
+    id: row.id,
+    title: row.title,
+    completed: row.completed === 1,
+    createdAt: row.createdAt,
+  };
+}
+
+function seedTodos(): Todo[] {
+  return [
+    {
+      id: randomUUID(),
+      title: "Write the README",
+      completed: true,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: randomUUID(),
+      title: "Wire up the todo form action",
+      completed: false,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+}
+
+function ensureSchema(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS todos (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      completed INTEGER NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL
+    )
+  `);
+
+  const { count } = db.prepare("SELECT COUNT(*) AS count FROM todos").get() as {
+    count: number;
+  };
+
+  if (count === 0) {
+    const insert = db.prepare(
+      "INSERT INTO todos (id, title, completed, createdAt) VALUES (@id, @title, @completed, @createdAt)",
+    );
+    for (const todo of seedTodos()) {
+      insert.run({ ...todo, completed: todo.completed ? 1 : 0 });
     }
-    throw error;
   }
 }
 
-async function writeTodos(todos: Todo[]): Promise<void> {
-  await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(DATA_FILE, JSON.stringify(todos, null, 2), "utf-8");
+// better-sqlite3 is synchronous, so each call opens, uses, and closes its
+// own connection rather than holding one open for the process lifetime.
+// For this app's traffic that cost is negligible, and it sidesteps file
+// locks that would otherwise complicate cwd-scoped tests (each test points
+// at its own temp directory).
+function withDb<T>(fn: (db: Database.Database) => T): T {
+  mkdirSync(DATA_DIR, { recursive: true });
+  const db = new Database(DATA_FILE);
+  try {
+    ensureSchema(db);
+    return fn(db);
+  } finally {
+    db.close();
+  }
 }
 
 export async function getTodos(): Promise<Todo[]> {
-  const todos = await readTodos();
-  return [...todos].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  return withDb((db) => {
+    const rows = db.prepare("SELECT * FROM todos ORDER BY createdAt ASC").all() as TodoRow[];
+    return rows.map(rowToTodo);
+  });
 }
 
 export async function addTodo(title: string): Promise<Todo> {
@@ -56,20 +100,25 @@ export async function addTodo(title: string): Promise<Todo> {
     throw new Error("Todo title cannot be empty");
   }
 
-  const todos = await readTodos();
-  const todo: Todo = {
-    id: randomUUID(),
-    title: trimmed,
-    completed: false,
-    createdAt: new Date().toISOString(),
-  };
-  await writeTodos([...todos, todo]);
-  return todo;
+  return withDb((db) => {
+    const todo: Todo = {
+      id: randomUUID(),
+      title: trimmed,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    };
+    db.prepare(
+      "INSERT INTO todos (id, title, completed, createdAt) VALUES (@id, @title, @completed, @createdAt)",
+    ).run({ ...todo, completed: 0 });
+    return todo;
+  });
 }
 
 export async function getTodo(id: string): Promise<Todo | null> {
-  const todos = await readTodos();
-  return todos.find((todo) => todo.id === id) ?? null;
+  return withDb((db) => {
+    const row = db.prepare("SELECT * FROM todos WHERE id = ?").get(id) as TodoRow | undefined;
+    return row ? rowToTodo(row) : null;
+  });
 }
 
 export async function updateTodoTitle(id: string, title: string): Promise<void> {
@@ -78,20 +127,19 @@ export async function updateTodoTitle(id: string, title: string): Promise<void> 
     throw new Error("Todo title cannot be empty");
   }
 
-  const todos = await readTodos();
-  const next = todos.map((todo) => (todo.id === id ? { ...todo, title: trimmed } : todo));
-  await writeTodos(next);
+  withDb((db) => {
+    db.prepare("UPDATE todos SET title = ? WHERE id = ?").run(trimmed, id);
+  });
 }
 
 export async function toggleTodo(id: string): Promise<void> {
-  const todos = await readTodos();
-  const next = todos.map((todo) =>
-    todo.id === id ? { ...todo, completed: !todo.completed } : todo,
-  );
-  await writeTodos(next);
+  withDb((db) => {
+    db.prepare("UPDATE todos SET completed = 1 - completed WHERE id = ?").run(id);
+  });
 }
 
 export async function deleteTodo(id: string): Promise<void> {
-  const todos = await readTodos();
-  await writeTodos(todos.filter((todo) => todo.id !== id));
+  withDb((db) => {
+    db.prepare("DELETE FROM todos WHERE id = ?").run(id);
+  });
 }

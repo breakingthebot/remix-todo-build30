@@ -13,16 +13,15 @@ server underneath (not just JavaScript in the browser), so the page works
 even before any client-side JavaScript has loaded — that's what
 "server-side rendering" means here.
 
-Right now the app stores its data in a plain JSON file on disk. That's
-intentionally simple for this first iteration; it's not meant to survive a
-real production deployment, just to make the app fully functional and
-testable today.
+Data lives in a real embedded SQLite database file on disk — no separate
+database server to run or configure.
 
 ## Tech stack
 
 - [Remix](https://remix.run) (v2, Vite-based) — full-stack web framework
 - React 18, TypeScript
 - Node.js runtime
+- SQLite via [better-sqlite3](https://github.com/WiseLibs/better-sqlite3)
 - Vitest for tests
 
 ## Getting started
@@ -55,10 +54,13 @@ on GitHub, for run history.
 
 ## How it works
 
-- `app/models/todo.server.ts` — the data layer. Reads and writes todos to
-  `data/todos.json` (created automatically on first run, seeded with two
-  example todos). This file is gitignored since it's runtime data, not
-  source code.
+- `app/models/todo.server.ts` — the data layer. Opens `data/todos.db` (a
+  SQLite file, created automatically on first run with the `todos` table and
+  seeded with two example todos). This file is gitignored since it's runtime
+  data, not source code. Every exported function (`getTodos`, `addTodo`,
+  `getTodo`, `updateTodoTitle`, `toggleTodo`, `deleteTodo`) keeps the exact
+  same signature it had when this was a hand-rolled JSON file, so nothing
+  above this layer — routes, tests — had to change when the storage swapped.
 - `app/routes/_index.tsx` — the `/` route. Its `loader` reads the todo list
   for server-side rendering; its `action` handles add/toggle/delete submitted
   via Remix form actions. Each todo row is its own `TodoItem` component using
@@ -76,6 +78,10 @@ on GitHub, for run history.
   `action` handles rename/toggle/delete for that single todo, redirecting
   back to `/todos` after a delete. The toggle button also uses `useFetcher`
   for the same instant feedback as the homepage list.
+- `app/root.tsx` — the document shell (`<html>`, `<head>`, `<body>`) every
+  route renders inside.
+- `app/entry.client.tsx` / `app/entry.server.tsx` — Remix's standard hydration
+  and server-rendering entry points.
 
 ## Optimistic UI
 
@@ -92,17 +98,13 @@ should look like *before* the server responds:
 This is scoped to `useFetcher` (not the page-level `<Form>`/navigation) so
 one todo's toggle/delete doesn't block interaction with the rest of the
 list.
-- `app/root.tsx` — the document shell (`<html>`, `<head>`, `<body>`) every
-  route renders inside.
-- `app/entry.client.tsx` / `app/entry.server.tsx` — Remix's standard hydration
-  and server-rendering entry points.
 
 ## Testing manually
 
 1. `npm run dev`
 2. Visit http://localhost:5173
-3. Add a todo, refresh the page — it should persist (confirms SSR + the JSON
-   data layer are both working, not just client state)
+3. Add a todo, refresh the page — it should persist (confirms SSR + the
+   SQLite data layer are both working, not just client state)
 4. Toggle a todo complete/incomplete on the homepage — notice it updates
    instantly, with no page flash/reload
 5. Delete a todo from the homepage list — it disappears immediately
@@ -110,15 +112,15 @@ list.
    delete it (delete redirects you back to `/todos`)
 7. Visit a bogus id like `/todos/does-not-exist` — you should see a friendly
    "todo doesn't exist" message, not a crash
-8. Check `data/todos.json` in the project folder — it should reflect all of
-   the above changes
+8. Inspect `data/todos.db` with any SQLite browser (or `sqlite3 data/todos.db
+   "SELECT * FROM todos;"`) — it should reflect all of the above changes
 
 ## Current scope / what's not here yet
 
-This is iteration 4 of an incremental build. Not yet implemented: a real
-database (still a JSON file), and inline validation error display for empty
-titles (the server already rejects them, the UI doesn't yet surface why).
-See `CHANGELOG.md` for what's shipped so far.
+This is iteration 5 of an incremental build. Not yet implemented: inline
+validation error display for empty titles (the server already rejects them,
+the UI doesn't yet surface why). See `CHANGELOG.md` for what's shipped so
+far.
 
 Also worth knowing: there's a harmless React hydration console warning on
 the "add a todo" title input, caused by the browser normalizing the

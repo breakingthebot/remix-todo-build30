@@ -3,7 +3,7 @@ build/
 .cache/
 public/build/
 .env
-data/todos.json
+data/
 
 # Local-only project files (not part of the pushed repo)
 AGENTS.md

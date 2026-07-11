@@ -99,6 +99,17 @@ This is scoped to `useFetcher` (not the page-level `<Form>`/navigation) so
 one todo's toggle/delete doesn't block interaction with the rest of the
 list.
 
+## Form validation
+
+The server has always rejected an empty/whitespace-only title (HTML5's
+`required` attribute stops a fully empty submit, but not a spaces-only one).
+What was missing was telling the user *why* nothing happened. Both the "add
+a todo" form and the detail page's rename form now read `useActionData()`
+and show the server's error message inline (`role="alert"`, and the input
+gets `aria-invalid`/`aria-describedby` wired to it) instead of silently
+no-opping. On a successful add, the input also clears itself automatically
+— it's an uncontrolled input, so nothing did that before.
+
 ## Testing manually
 
 1. `npm run dev`
@@ -112,12 +123,17 @@ list.
    delete it (delete redirects you back to `/todos`)
 7. Visit a bogus id like `/todos/does-not-exist` — you should see a friendly
    "todo doesn't exist" message, not a crash
-8. Inspect `data/todos.db` with any SQLite browser (or `sqlite3 data/todos.db
-   "SELECT * FROM todos;"`) — it should reflect all of the above changes
+8. Type only spaces into the "add a todo" box and submit — you should see
+   "Todo title cannot be empty" appear right under the form, and nothing
+   gets added
+9. Add a real todo after that — the error should clear and the input should
+   empty itself
+10. Try the same spaces-only submission on a todo's `/todos/:id` rename form
+11. Inspect `data/todos.db` with any SQLite browser (or `sqlite3
+    data/todos.db "SELECT * FROM todos;"`) — it should reflect all of the
+    above changes
 
 ## Current scope / what's not here yet
 
-This is iteration 6 of an incremental build. Not yet implemented: inline
-validation error display for empty titles (the server already rejects them,
-the UI doesn't yet surface why). See `CHANGELOG.md` for what's shipped so
-far.
+This is iteration 7 of an incremental build. See `CHANGELOG.md` for what's
+shipped so far.

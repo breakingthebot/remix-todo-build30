@@ -1,6 +1,15 @@
+import { useEffect, useRef } from "react";
+
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { Form, Link, useFetcher, useLoaderData, useNavigation } from "@remix-run/react";
+import {
+  Form,
+  Link,
+  useActionData,
+  useFetcher,
+  useLoaderData,
+  useNavigation,
+} from "@remix-run/react";
 
 import type { Todo } from "../models/todo.server";
 import { addTodo, deleteTodo, getTodos, toggleTodo } from "../models/todo.server";
@@ -17,31 +26,41 @@ export async function action({ request }: ActionFunctionArgs) {
   if (intent === "create") {
     const title = String(formData.get("title") ?? "");
     if (!title.trim()) {
-      return json({ error: "Todo title cannot be empty" }, { status: 400 });
+      return json({ ok: false, error: "Todo title cannot be empty" }, { status: 400 });
     }
     await addTodo(title);
-    return json({ ok: true });
+    return json({ ok: true, error: null });
   }
 
   if (intent === "toggle") {
     const id = String(formData.get("id") ?? "");
     await toggleTodo(id);
-    return json({ ok: true });
+    return json({ ok: true, error: null });
   }
 
   if (intent === "delete") {
     const id = String(formData.get("id") ?? "");
     await deleteTodo(id);
-    return json({ ok: true });
+    return json({ ok: true, error: null });
   }
 
-  return json({ error: "Unknown intent" }, { status: 400 });
+  return json({ ok: false, error: "Unknown intent" }, { status: 400 });
 }
 
 export default function Index() {
   const { todos } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Clear the input after a successful add. Uncontrolled inputs don't reset
+  // themselves just because the loader revalidated with the new todo.
+  useEffect(() => {
+    if (navigation.state === "idle" && !actionData?.error) {
+      formRef.current?.reset();
+    }
+  }, [navigation.state, actionData]);
 
   return (
     <main style={{ maxWidth: 480, margin: "3rem auto", fontFamily: "sans-serif" }}>
@@ -51,13 +70,19 @@ export default function Index() {
         <Link to="/todos">View / edit todos on their own pages &rarr;</Link>
       </p>
 
-      <Form method="post" style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
+      <Form
+        ref={formRef}
+        method="post"
+        style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}
+      >
         <input type="hidden" name="intent" value="create" />
         <input
           type="text"
           name="title"
           placeholder="What needs doing?"
           aria-label="Todo title"
+          aria-invalid={actionData?.error ? true : undefined}
+          aria-describedby="title-error"
           required
           style={{ flex: 1, padding: "0.5rem" }}
         />
@@ -65,6 +90,10 @@ export default function Index() {
           Add
         </button>
       </Form>
+
+      <p id="title-error" role="alert" style={{ color: "#b3261e", margin: "0 0 1rem", minHeight: "1.2em" }}>
+        {actionData?.error}
+      </p>
 
       <ul style={{ listStyle: "none", padding: 0 }}>
         {todos.map((todo) => (

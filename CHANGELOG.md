@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [0.7.0] - 2026-07-11
+
+### Added
+- Inline validation error display on both the homepage "add a todo" form
+  and the `/todos/:id` rename form, wired via `useActionData()`. A
+  whitespace-only title now shows "Todo title cannot be empty" right under
+  the form (`role="alert"`, `aria-invalid`/`aria-describedby` on the input)
+  instead of silently doing nothing.
+- The "add a todo" input now clears itself after a successful submission.
+
+### Changed
+- Both routes' `action` return shapes normalized to `{ ok: boolean; error:
+  string | null }` (previously two differently-shaped `json()` calls) so
+  TypeScript can narrow `actionData?.error` without an `in` guard.
+
 ## [0.6.0] - 2026-07-11
 
 ### Investigated

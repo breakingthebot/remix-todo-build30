@@ -1,5 +1,7 @@
 # Remix Todo
 
+[![CI](https://github.com/breakingthebot/remix-todo-build30/actions/workflows/ci.yml/badge.svg)](https://github.com/breakingthebot/remix-todo-build30/actions/workflows/ci.yml)
+
 ## What this is (plain English)
 
 A todo list web app you run yourself. You open it in a browser, type a task
@@ -40,6 +42,14 @@ Then open http://localhost:3000.
 | `npm start` | Runs the production build (`npm run build` first) |
 | `npm run typecheck` | Type-checks the project with TypeScript |
 | `npm test` | Runs the Vitest test suite |
+
+## Continuous integration
+
+Every push and pull request against `main` runs typecheck, tests, and a
+production build via GitHub Actions
+(`.github/workflows/ci.yml`). See the badge above, or the
+[Actions tab](https://github.com/breakingthebot/remix-todo-build30/actions)
+on GitHub, for run history.
 
 ## How it works
 
@@ -83,6 +93,6 @@ Then open http://localhost:3000.
 
 ## Current scope / what's not here yet
 
-This is iteration 2 of an incremental build. Not yet implemented: optimistic
+This is iteration 3 of an incremental build. Not yet implemented: optimistic
 UI updates and a real database. See `CHANGELOG.md` for what's shipped so
 far.

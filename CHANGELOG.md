@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [0.3.0] - 2026-07-10
+
+### Added
+- GitHub Actions CI workflow (`.github/workflows/ci.yml`): runs on every
+  push/PR to `main`, installs with `npm ci`, then runs typecheck, tests, and
+  a production build (Node 22).
+- CI status badge and a "Continuous integration" section in the README.
+
 ## [0.2.0] - 2026-07-10
 
 ### Added

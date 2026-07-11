@@ -117,13 +117,7 @@ list.
 
 ## Current scope / what's not here yet
 
-This is iteration 5 of an incremental build. Not yet implemented: inline
+This is iteration 6 of an incremental build. Not yet implemented: inline
 validation error display for empty titles (the server already rejects them,
 the UI doesn't yet surface why). See `CHANGELOG.md` for what's shipped so
 far.
-
-Also worth knowing: there's a harmless React hydration console warning on
-the "add a todo" title input, caused by the browser normalizing the
-`flex: 1` shorthand CSS differently than the server-rendered HTML string.
-It doesn't affect functionality — noted here so it's not mistaken for a new
-bug.

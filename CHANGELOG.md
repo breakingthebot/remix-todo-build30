@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here.
 
+## [0.6.0] - 2026-07-11
+
+### Investigated
+- The React hydration console warning noted in 0.4.0 ("Known issues" below)
+  does not reproduce. Tested: cold dev-server load, warm dev-server load,
+  post-interaction (toggle/delete clicks), and the full production build —
+  all clean, no console errors, across multiple repeated runs. Most likely
+  explanation: a one-time Vite dev-server cold-compile race on the very
+  first request to a freshly started server, not a real SSR/client markup
+  mismatch in the app. No code changed, since there's nothing reproducible
+  to fix — the 0.4.0 changelog entry below is corrected accordingly.
+
 ## [0.5.0] - 2026-07-10
 
 ### Changed
@@ -33,9 +45,9 @@ All notable changes to this project are documented here.
   (Vite serves on 5173, not 3000 — that's the production `npm start` port).
 
 ### Known issues
-- Harmless React hydration warning on the todo-title `<input>`'s `style`
-  attribute (browser CSS shorthand normalization of `flex: 1`). Cosmetic,
-  pre-existing, not caused by this iteration's changes.
+- ~~Harmless React hydration warning on the todo-title `<input>`'s `style`
+  attribute~~ — see 0.6.0 above: this did not reproduce on investigation and
+  was most likely a one-time dev-server artifact, not a real issue.
 
 ## [0.3.0] - 2026-07-10
 

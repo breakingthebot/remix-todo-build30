@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here.
 
+## [0.8.0] - 2026-07-11
+
+### Added
+- `deleteCompletedTodos()` in the data layer (bulk `DELETE ... WHERE
+  completed = 1`, returns the number of rows removed), with test coverage.
+- "Clear completed (N)" bulk action on the homepage: a new `clearCompleted`
+  action intent, and a button (only rendered when at least one todo is
+  completed) that removes all completed todos in one request. Uses the same
+  `useFetcher` optimistic pattern as individual toggle/delete — completed
+  todos vanish from the list immediately, and the button's count (or its
+  disappearance, once nothing is left completed) updates in the same tick.
+
 ## [0.7.0] - 2026-07-11
 
 ### Added

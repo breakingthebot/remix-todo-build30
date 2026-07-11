@@ -12,7 +12,7 @@ import {
 } from "@remix-run/react";
 
 import type { Todo } from "../models/todo.server";
-import { addTodo, deleteTodo, getTodos, toggleTodo } from "../models/todo.server";
+import { addTodo, deleteCompletedTodos, deleteTodo, getTodos, toggleTodo } from "../models/todo.server";
 
 export async function loader(_args: LoaderFunctionArgs) {
   const todos = await getTodos();
@@ -44,6 +44,11 @@ export async function action({ request }: ActionFunctionArgs) {
     return json({ ok: true, error: null });
   }
 
+  if (intent === "clearCompleted") {
+    await deleteCompletedTodos();
+    return json({ ok: true, error: null });
+  }
+
   return json({ ok: false, error: "Unknown intent" }, { status: 400 });
 }
 
@@ -53,6 +58,7 @@ export default function Index() {
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
   const formRef = useRef<HTMLFormElement>(null);
+  const clearCompletedFetcher = useFetcher();
 
   // Clear the input after a successful add. Uncontrolled inputs don't reset
   // themselves just because the loader revalidated with the new todo.
@@ -61,6 +67,14 @@ export default function Index() {
       formRef.current?.reset();
     }
   }, [navigation.state, actionData]);
+
+  // Same optimistic pattern as TodoItem below: while the bulk-clear request
+  // is in flight, hide completed todos immediately rather than waiting for
+  // the round trip.
+  const isClearingCompleted =
+    clearCompletedFetcher.formData?.get("intent") === "clearCompleted";
+  const visibleTodos = isClearingCompleted ? todos.filter((todo) => !todo.completed) : todos;
+  const completedCount = visibleTodos.filter((todo) => todo.completed).length;
 
   return (
     <main style={{ maxWidth: 480, margin: "3rem auto", fontFamily: "sans-serif" }}>
@@ -96,12 +110,19 @@ export default function Index() {
       </p>
 
       <ul style={{ listStyle: "none", padding: 0 }}>
-        {todos.map((todo) => (
+        {visibleTodos.map((todo) => (
           <TodoItem key={todo.id} todo={todo} />
         ))}
       </ul>
 
-      {todos.length === 0 && <p>No todos yet — add one above.</p>}
+      {visibleTodos.length === 0 && <p>No todos yet — add one above.</p>}
+
+      {completedCount > 0 && (
+        <clearCompletedFetcher.Form method="post" style={{ marginTop: "1rem", textAlign: "right" }}>
+          <input type="hidden" name="intent" value="clearCompleted" />
+          <button type="submit">Clear completed ({completedCount})</button>
+        </clearCompletedFetcher.Form>
+      )}
     </main>
   );
 }

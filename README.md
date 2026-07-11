@@ -62,11 +62,12 @@ on GitHub, for run history.
   same signature it had when this was a hand-rolled JSON file, so nothing
   above this layer — routes, tests — had to change when the storage swapped.
 - `app/routes/_index.tsx` — the `/` route. Its `loader` reads the todo list
-  for server-side rendering; its `action` handles add/toggle/delete submitted
-  via Remix form actions. Each todo row is its own `TodoItem` component using
-  `useFetcher` so toggling/deleting one item doesn't block the rest of the
-  page — see "Optimistic UI" below. Each todo's title links to its detail
-  page.
+  for server-side rendering; its `action` handles add/toggle/delete/
+  clear-completed submitted via Remix form actions. Each todo row is its own
+  `TodoItem` component using `useFetcher` so toggling/deleting one item
+  doesn't block the rest of the page — see "Optimistic UI" below. Each
+  todo's title links to its detail page. A "Clear completed (N)" button
+  appears whenever at least one todo is checked off.
 - `app/routes/todos.tsx` — layout route for `/todos/*`. Loads the full todo
   list for a sidebar nav and renders the matched child route via `<Outlet />`
   — this is Remix's nested routing: the layout and the child route each have
@@ -94,6 +95,9 @@ should look like *before* the server responds:
   once the server confirms (or reverts if it fails).
 - **Delete** — the row is removed from the list immediately rather than
   waiting for the server's response.
+- **Clear completed** — every checked-off todo disappears from the list
+  immediately; the button itself (and its count) also updates immediately,
+  since both are derived from the same optimistic, filtered list.
 
 This is scoped to `useFetcher` (not the page-level `<Form>`/navigation) so
 one todo's toggle/delete doesn't block interaction with the rest of the
@@ -129,11 +133,16 @@ no-opping. On a successful add, the input also clears itself automatically
 9. Add a real todo after that — the error should clear and the input should
    empty itself
 10. Try the same spaces-only submission on a todo's `/todos/:id` rename form
-11. Inspect `data/todos.db` with any SQLite browser (or `sqlite3
+11. Check off a couple of todos — a "Clear completed (N)" button appears
+    below the list; click it and watch the completed todos vanish instantly
+12. Reload the page — the cleared todos should stay gone (confirms it
+    persisted, not just optimistic client state); if nothing's left
+    completed, the button itself should be gone too
+13. Inspect `data/todos.db` with any SQLite browser (or `sqlite3
     data/todos.db "SELECT * FROM todos;"`) — it should reflect all of the
     above changes
 
 ## Current scope / what's not here yet
 
-This is iteration 7 of an incremental build. See `CHANGELOG.md` for what's
+This is iteration 8 of an incremental build. See `CHANGELOG.md` for what's
 shipped so far.

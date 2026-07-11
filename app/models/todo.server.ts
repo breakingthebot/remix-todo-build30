@@ -143,3 +143,10 @@ export async function deleteTodo(id: string): Promise<void> {
     db.prepare("DELETE FROM todos WHERE id = ?").run(id);
   });
 }
+
+export async function deleteCompletedTodos(): Promise<number> {
+  return withDb((db) => {
+    const result = db.prepare("DELETE FROM todos WHERE completed = 1").run();
+    return result.changes;
+  });
+}

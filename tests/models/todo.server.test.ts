@@ -76,4 +76,37 @@ describe("todo.server", () => {
       "Todo title cannot be empty",
     );
   });
+
+  it("deletes only completed todos and returns how many were removed", async () => {
+    const { addTodo, toggleTodo, deleteCompletedTodos, getTodos } = await import(
+      "../../app/models/todo.server"
+    );
+    // Seeding happens lazily on first access, so account for however many
+    // of the seeded todos are already completed before adding our own.
+    const seededCompletedCount = (await getTodos()).filter((t) => t.completed).length;
+
+    const done1 = await addTodo("Done 1");
+    const done2 = await addTodo("Done 2");
+    const stillOpen = await addTodo("Still open");
+    await toggleTodo(done1.id);
+    await toggleTodo(done2.id);
+
+    const removedCount = await deleteCompletedTodos();
+    expect(removedCount).toBe(seededCompletedCount + 2);
+
+    const todos = await getTodos();
+    expect(todos.some((t) => t.completed)).toBe(false);
+    expect(todos.some((t) => t.id === stillOpen.id)).toBe(true);
+    expect(todos.some((t) => t.id === done1.id || t.id === done2.id)).toBe(false);
+  });
+
+  it("deleteCompletedTodos leaves incomplete todos untouched", async () => {
+    const { addTodo, deleteCompletedTodos, getTodos } = await import(
+      "../../app/models/todo.server"
+    );
+    await addTodo("Not done yet");
+    await deleteCompletedTodos();
+    const todos = await getTodos();
+    expect(todos.some((t) => t.title === "Not done yet")).toBe(true);
+  });
 });

@@ -44,6 +44,10 @@ the production build, serves on port 3000 instead).
 | `npm run typecheck` | Type-checks the project with TypeScript |
 | `npm test` | Runs the Vitest test suite |
 
+## Deployed
+- **Vercel Production App**: [https://remix-todo-build30.vercel.app](https://remix-todo-build30.vercel.app)
+- **GitHub Repository**: [https://github.com/breakingthebot/remix-todo-build30](https://github.com/breakingthebot/remix-todo-build30)
+
 ## Continuous integration
 
 Every push and pull request against `main` runs typecheck, tests, and a
